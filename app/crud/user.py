@@ -33,3 +33,8 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
         return None
 
     return user
+
+
+def get_user_by_id(db: Session, user_id: int) -> User | None:
+    result = db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none

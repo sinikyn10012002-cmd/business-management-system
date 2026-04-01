@@ -6,6 +6,8 @@ from app.schemas.token import LoginRequest, Token
 from app.crud.user import create_user, get_user_by_email, authenticate_user
 from app.db.session import get_db
 from app.core.security import create_access_token
+from app.dependencies.auth import get_current_user
+from app.models.user import User
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -36,3 +38,8 @@ def login(user_in: LoginRequest, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+@router.get("/me", response_model=UserRead)
+def read_me(current_user: User = Depends(get_current_user)):
+    return current_user
