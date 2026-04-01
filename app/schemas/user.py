@@ -18,3 +18,8 @@ class UserRead(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class UserUpdate(UserBase):
+    email: Optional[str] = None
+    password: Optional[str] = None
