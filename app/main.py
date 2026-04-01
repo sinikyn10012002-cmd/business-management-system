@@ -2,8 +2,10 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
+from app.api import auth
 
 app = FastAPI(title="Business Management System")
+app.include_router(auth.router)
 
 
 @app.post("/users/")
