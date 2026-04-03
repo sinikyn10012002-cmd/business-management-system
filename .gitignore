@@ -16,6 +16,7 @@ __pycache__/
 
 # Alembic
 alembic/versions/__pycache__/
+view_migrations.py
 
 # IDE
 .vscode/

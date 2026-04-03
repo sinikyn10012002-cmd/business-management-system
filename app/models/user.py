@@ -1,6 +1,6 @@
-from sqlalchemy import String, Integer, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
-from app.db.session import Base
+from sqlalchemy import String, Integer, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.db.base_class import Base
 
 
 class User(Base):
@@ -12,3 +12,7 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String, default="user")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
+
+    team = relationship("Team", back_populates="members")

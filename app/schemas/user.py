@@ -23,3 +23,12 @@ class UserRead(UserBase):
 class UserUpdate(UserBase):
     email: Optional[str] = None
     password: Optional[str] = None
+
+
+class UserOut(UserBase):
+    id: int
+    role: str
+    team_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True

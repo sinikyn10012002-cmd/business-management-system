@@ -38,7 +38,7 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     result = db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none
+    return result.scalar_one_or_none()
 
 
 def update_user(db: Session, user: User, user_in: UserUpdate) -> User:
@@ -46,7 +46,7 @@ def update_user(db: Session, user: User, user_in: UserUpdate) -> User:
         user.full_name = user_in.full_name
 
     if user_in.email is not None:
-        user.email = user_in.full_name
+        user.email = user_in.email
 
     if user_in.password is not None:
         user.hashed_password = hash_password(user_in.password)
@@ -59,3 +59,8 @@ def update_user(db: Session, user: User, user_in: UserUpdate) -> User:
 def delete_user(db: Session, user: User) -> None:
     db.delete(user)
     db.commit()
+
+
+def get_users_by_team_id(db: Session, team_id: int) -> list[User]:
+    result = db.execute(select(User).where(User.team_id == team_id))
+    return result.scalars().all()

@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.api import auth
+from app.api import teams
 
 app = FastAPI(title="Business Management System")
 app.include_router(auth.router)
+app.include_router(teams.router)
 
 
 @app.post("/users/")
