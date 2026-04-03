@@ -9,6 +9,13 @@ class TaskCreate(BaseModel):
     executor_id: int
 
 
+class TaskUpdate(BaseModel):
+    title: str
+    description: str | None = None
+    deadline: datetime | None = None
+    executor_id: int
+
+
 class TaskOut(BaseModel):
     id: int
     title: str
