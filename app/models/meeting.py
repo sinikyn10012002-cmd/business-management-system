@@ -30,3 +30,6 @@ class Meeting(Base):
     participants = relationship(
         "User", secondary=meeting_participants, back_populates="meetings"
     )
+
+    def __str__(self):
+        return self.title

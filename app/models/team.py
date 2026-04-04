@@ -11,3 +11,6 @@ class Team(Base):
     code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
 
     members = relationship("User", back_populates="team")
+
+    def __str__(self):
+        return self.name

@@ -27,3 +27,6 @@ class Task(Base):
     author = relationship("User", foreign_keys=[author_id])
     executor = relationship("User", foreign_keys=[executor_id])
     team = relationship("Team")
+
+    def __str__(self):
+        return self.title

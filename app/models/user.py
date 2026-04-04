@@ -22,3 +22,6 @@ class User(Base):
     )
 
     organized_meetings = relationship("Meeting", foreign_keys="Meeting.organizer_id")
+
+    def __str__(self):
+        return self.email
