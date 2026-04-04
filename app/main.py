@@ -5,11 +5,13 @@ from app.models.user import User
 from app.api import auth
 from app.api import teams
 from app.api import task
+from app.api import meetings
 
 app = FastAPI(title="Business Management System")
 app.include_router(auth.router)
 app.include_router(teams.router)
 app.include_router(task.router)
+app.include_router(meetings.router)
 
 
 @app.post("/users/")

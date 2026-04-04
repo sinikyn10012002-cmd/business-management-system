@@ -16,3 +16,9 @@ class User(Base):
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
 
     team = relationship("Team", back_populates="members")
+
+    meetings = relationship(
+        "Meeting", secondary="meeting_participants", back_populates="participants"
+    )
+
+    organized_meetings = relationship("Meeting", foreign_keys="Meeting.organizer_id")

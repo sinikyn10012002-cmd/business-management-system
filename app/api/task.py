@@ -202,3 +202,26 @@ def get_comments(
             raise HTTPException(status_code=403, detail="Not your team task")
 
     return get_comments_by_task(db, task_id)
+
+
+@router.get("/{task_id}", response_model=TaskOut)
+def get_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    task = get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    if current_user.role != "admin":
+        if current_user.team_id != task.team_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not your team task",
+            )
+
+    return task
