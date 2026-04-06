@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, date
+from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -17,8 +18,19 @@ def get_calendar_day(
     day: str = Query(..., description="Дата в формате YYYY-MM-DD"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
-    target_date = datetime.strptime(day, "%Y-%m-%d").date()
+) -> CalendarDayResponse:
+    """
+    Получить календарь пользователя на конкретный день.
+
+    Преобразует строку даты в объект date и формирует список
+    событий, задач и встреч на выбранный день.
+
+    :param day: Дата в формате YYYY-MM-DD
+    :param db: Сессия базы данных
+    :param current_user: Текущий авторизованный пользователь
+    :return: Данные календаря за день
+    """
+    target_date: date = datetime.strptime(day, "%Y-%m-%d").date()
     items = build_day_calendar(db, current_user.id, target_date)
 
     return {
@@ -29,11 +41,23 @@ def get_calendar_day(
 
 @router.get("/month", response_model=CalendarMonthResponse)
 def get_calendar_month(
-    year: int = Query(...),
-    month: int = Query(..., ge=1, le=12),
+    year: int = Query(..., description="Год"),
+    month: int = Query(..., ge=1, le=12, description="Месяц (1-12)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CalendarMonthResponse:
+    """
+    Получить календарь пользователя на месяц.
+
+    Формирует календарь по дням и возвращает список событий,
+    задач и встреч на каждый день месяца.
+
+    :param year: Год
+    :param month: Месяц (1-12)
+    :param db: Сессия базы данных
+    :param current_user: Текущий авторизованный пользователь
+    :return: Данные календаря за месяц
+    """
     days = build_month_calendar(db, current_user.id, year, month)
 
     return {

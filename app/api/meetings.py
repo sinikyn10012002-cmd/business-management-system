@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -25,8 +27,22 @@ def create_new_meeting(
     meeting_in: MeetingCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
-    participant_ids = list(set(meeting_in.participant_ids + [current_user.id]))
+) -> MeetingResponse:
+    """
+    Создать новую встречу.
+
+    Перед созданием встречи выполняется проверка занятости всех участников,
+    включая организатора. Если у хотя бы одного пользователя уже есть
+    пересекающаяся по времени встреча, создание отменяется.
+
+    :param meeting_in: Данные для создания встречи
+    :param db: Сессия базы данных
+    :param current_user: Текущий авторизованный пользователь
+    :return: Созданная встреча
+    """
+    participant_ids: List[int] = list(
+        set(meeting_in.participant_ids + [current_user.id])
+    )
 
     for user_id in participant_ids:
         if has_meeting_overlap(
@@ -56,7 +72,17 @@ def create_new_meeting(
 def get_my_meetings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> list[MeetingResponse]:
+    """
+    Получить список встреч текущего пользователя.
+
+    Возвращает все встречи, в которых пользователь является
+    организатором или участником.
+
+    :param db: Сессия базы данных
+    :param current_user: Текущий авторизованный пользователь
+    :return: Список встреч пользователя
+    """
     return get_user_meetings(db, current_user.id)
 
 
@@ -65,7 +91,19 @@ def cancel_meeting(
     meeting_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Response:
+    """
+    Отменить встречу по идентификатору.
+
+    Удаление встречи доступно только ее организатору.
+    Если встреча не найдена или пользователь не является организатором,
+    возвращается соответствующая ошибка.
+
+    :param meeting_id: Идентификатор встречи
+    :param db: Сессия базы данных
+    :param current_user: Текущий авторизованный пользователь
+    :return: Пустой ответ со статусом 204 No Content
+    """
     meeting = get_meeting_by_id(db, meeting_id)
     if not meeting:
         raise HTTPException(
@@ -80,3 +118,4 @@ def cancel_meeting(
         )
 
     delete_meeting(db, meeting)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

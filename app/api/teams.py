@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -25,7 +27,17 @@ def create_new_team(
     team_in: TeamCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(role_required("admin")),
-):
+) -> TeamRead:
+    """
+    Создать новую команду.
+
+    Создание команды доступно только администратору.
+
+    :param team_in: Данные команды
+    :param db: Сессия базы данных
+    :param current_user: Текущий пользователь с ролью admin
+    :return: Созданная команда
+    """
     team = create_team(db, team_in.name)
     return team
 
@@ -35,7 +47,17 @@ def join_team(
     data: JoinTeam,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, str]:
+    """
+    Вступить в команду по коду приглашения.
+
+    Пользователь может состоять только в одной команде.
+
+    :param data: Код приглашения в команду
+    :param db: Сессия базы данных
+    :param current_user: Текущий пользователь
+    :return: Сообщение о вступлении в команду
+    """
     team = get_team_by_code(db, data.code)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -61,7 +83,14 @@ def join_team(
 def get_team_members(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> List[UserOut]:
+    """
+    Получить список участников команды текущего пользователя.
+
+    :param db: Сессия базы данных
+    :param current_user: Текущий пользователь
+    :return: Список участников команды
+    """
     if current_user.team_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -77,7 +106,18 @@ def change_user_role(
     data: ChangeUserRole,
     db: Session = Depends(get_db),
     current_user: User = Depends(role_required("admin")),
-):
+) -> Dict[str, str]:
+    """
+    Изменить роль пользователя в системе.
+
+    Изменение роли доступно только администратору.
+    Нельзя изменить роль администратора.
+
+    :param data: Данные для изменения роли
+    :param db: Сессия базы данных
+    :param current_user: Текущий пользователь с ролью admin
+    :return: Сообщение об изменении роли
+    """
     user = get_user_by_id(db, data.user_id)
     if not user:
         raise HTTPException(
@@ -107,7 +147,18 @@ def delete_user_from_team(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(role_required("admin")),
-):
+) -> Dict[str, str]:
+    """
+    Удалить пользователя из команды.
+
+    Удаление пользователя из команды доступно только администратору.
+    Администратор не может удалить самого себя или другого администратора.
+
+    :param user_id: ID пользователя
+    :param db: Сессия базы данных
+    :param current_user: Текущий пользователь с ролью admin
+    :return: Сообщение об удалении пользователя из команды
+    """
     user = get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(
