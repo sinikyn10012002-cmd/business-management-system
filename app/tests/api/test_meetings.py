@@ -7,7 +7,7 @@ from app.api.meetings import router
 from app.api import meetings as meetings_module
 from app.db.session import get_db
 from app.dependencies.auth import get_current_user
-from app.tests.api.utils import make_user, build_client
+from app.tests.api.utils import make_user
 
 
 def _client(fake_db, current_user):
@@ -107,4 +107,6 @@ def test_cancel_meeting_only_organizer(monkeypatch, fake_db):
     response = client.delete("/meetings/5")
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Только организатор может отменить встречу"
+    assert response.json()["detail"] == (
+        "Только организатор может отменить встречу"
+    )

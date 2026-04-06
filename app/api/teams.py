@@ -41,10 +41,16 @@ def join_team(
         raise HTTPException(status_code=404, detail="Team not found")
 
     if current_user.team_id == team.id:
-        raise HTTPException(status_code=400, detail="You are already in this team")
+        raise HTTPException(
+            status_code=400,
+            detail="You are already in this team",
+        )
 
     if current_user.team_id is not None:
-        raise HTTPException(status_code=400, detail="You are already in another team")
+        raise HTTPException(
+            status_code=400,
+            detail="You are already in another team",
+        )
 
     add_user_to_team(db, current_user, team)
 

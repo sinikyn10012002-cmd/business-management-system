@@ -67,7 +67,11 @@ def test_get_tasks_manager_without_team(fake_db):
 def test_create_task_executor_not_found(monkeypatch, fake_db):
     current_user = make_user(user_id=2, role="manager", team_id=10)
 
-    monkeypatch.setattr(task_module, "get_user_by_id", lambda db, user_id: None)
+    monkeypatch.setattr(
+        task_module,
+        "get_user_by_id",
+        lambda db, user_id: None,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -89,7 +93,11 @@ def test_create_task_executor_in_another_team(monkeypatch, fake_db):
     current_user = make_user(user_id=2, role="manager", team_id=10)
     executor = make_user(user_id=5, role="user", team_id=99)
 
-    monkeypatch.setattr(task_module, "get_user_by_id", lambda db, user_id: executor)
+    monkeypatch.setattr(
+        task_module,
+        "get_user_by_id",
+        lambda db, user_id: executor,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -111,7 +119,11 @@ def test_delete_task_only_author(monkeypatch, fake_db):
     current_user = make_user(user_id=1, role="user")
     task = SimpleNamespace(id=10, author_id=2)
 
-    monkeypatch.setattr(task_module, "get_task_by_id", lambda db, task_id: task)
+    monkeypatch.setattr(
+        task_module,
+        "get_task_by_id",
+        lambda db, task_id: task,
+    )
 
     client = _client(fake_db, current_user)
     response = client.delete("/tasks/10")
@@ -124,10 +136,17 @@ def test_change_status_only_executor(monkeypatch, fake_db):
     current_user = make_user(user_id=1, role="user")
     task = SimpleNamespace(id=10, executor_id=2, status="open")
 
-    monkeypatch.setattr(task_module, "get_task_by_id", lambda db, task_id: task)
+    monkeypatch.setattr(
+        task_module,
+        "get_task_by_id",
+        lambda db, task_id: task,
+    )
 
     client = _client(fake_db, current_user)
-    response = client.patch("/tasks/10/status", params={"status_value": "done"})
+    response = client.patch(
+        "/tasks/10/status",
+        params={"status_value": "done"},
+    )
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Only executor can change status"
@@ -137,10 +156,17 @@ def test_change_status_invalid_status(monkeypatch, fake_db):
     current_user = make_user(user_id=1, role="user")
     task = SimpleNamespace(id=10, executor_id=1, status="open")
 
-    monkeypatch.setattr(task_module, "get_task_by_id", lambda db, task_id: task)
+    monkeypatch.setattr(
+        task_module,
+        "get_task_by_id",
+        lambda db, task_id: task,
+    )
 
     client = _client(fake_db, current_user)
-    response = client.patch("/tasks/10/status", params={"status_value": "bad_status"})
+    response = client.patch(
+        "/tasks/10/status",
+        params={"status_value": "bad_status"},
+    )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid status"
@@ -150,7 +176,11 @@ def test_add_comment_for_foreign_team(monkeypatch, fake_db):
     current_user = make_user(user_id=1, role="user", team_id=10)
     task = SimpleNamespace(id=10, team_id=99)
 
-    monkeypatch.setattr(task_module, "get_task_by_id", lambda db, task_id: task)
+    monkeypatch.setattr(
+        task_module,
+        "get_task_by_id",
+        lambda db, task_id: task,
+    )
 
     client = _client(fake_db, current_user)
     response = client.post("/tasks/10/comments", json={"text": "Hello"})
@@ -162,7 +192,11 @@ def test_add_comment_for_foreign_team(monkeypatch, fake_db):
 def test_get_task_not_found(monkeypatch, fake_db):
     current_user = make_user(user_id=1, role="admin")
 
-    monkeypatch.setattr(task_module, "get_task_by_id", lambda db, task_id: None)
+    monkeypatch.setattr(
+        task_module,
+        "get_task_by_id",
+        lambda db, task_id: None,
+    )
 
     client = _client(fake_db, current_user)
     response = client.get("/tasks/999")

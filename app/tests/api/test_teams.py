@@ -7,7 +7,7 @@ from app.api.teams import router
 from app.api import teams as teams_module
 from app.db.session import get_db
 from app.dependencies.auth import get_current_user
-from app.tests.api.utils import make_user, build_client
+from app.tests.api.utils import make_user
 
 
 def _client(fake_db, current_user):
@@ -23,12 +23,20 @@ def test_join_team_success(monkeypatch, fake_db):
     team = SimpleNamespace(id=10, name="Alpha", code="ABC123")
     called = {"ok": False}
 
-    monkeypatch.setattr(teams_module, "get_team_by_code", lambda db, code: team)
+    monkeypatch.setattr(
+        teams_module,
+        "get_team_by_code",
+        lambda db, code: team,
+    )
 
     def fake_add_user_to_team(db, user, team_obj):
         called["ok"] = True
 
-    monkeypatch.setattr(teams_module, "add_user_to_team", fake_add_user_to_team)
+    monkeypatch.setattr(
+        teams_module,
+        "add_user_to_team",
+        fake_add_user_to_team,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -42,7 +50,11 @@ def test_join_team_success(monkeypatch, fake_db):
 def test_join_team_not_found(monkeypatch, fake_db):
     current_user = make_user(user_id=1, team_id=None)
 
-    monkeypatch.setattr(teams_module, "get_team_by_code", lambda db, code: None)
+    monkeypatch.setattr(
+        teams_module,
+        "get_team_by_code",
+        lambda db, code: None,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -56,7 +68,11 @@ def test_join_team_already_in_same_team(monkeypatch, fake_db):
     current_user = make_user(user_id=1, team_id=10)
     team = SimpleNamespace(id=10, name="Alpha", code="ABC123")
 
-    monkeypatch.setattr(teams_module, "get_team_by_code", lambda db, code: team)
+    monkeypatch.setattr(
+        teams_module,
+        "get_team_by_code",
+        lambda db, code: team,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -70,7 +86,11 @@ def test_join_team_already_in_another_team(monkeypatch, fake_db):
     current_user = make_user(user_id=1, team_id=99)
     team = SimpleNamespace(id=10, name="Alpha", code="ABC123")
 
-    monkeypatch.setattr(teams_module, "get_team_by_code", lambda db, code: team)
+    monkeypatch.setattr(
+        teams_module,
+        "get_team_by_code",
+        lambda db, code: team,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -87,7 +107,11 @@ def test_get_team_members_success(monkeypatch, fake_db):
         make_user(user_id=2, email="b@test.com", team_id=10),
     ]
 
-    monkeypatch.setattr(teams_module, "get_users_by_team_id", lambda db, team_id: users)
+    monkeypatch.setattr(
+        teams_module,
+        "get_users_by_team_id",
+        lambda db, team_id: users,
+    )
 
     client = _client(fake_db, current_user)
 
@@ -111,27 +135,50 @@ def test_get_team_members_user_not_in_team(fake_db):
 def test_change_user_role_user_not_found(monkeypatch, fake_db):
     current_user = make_user(user_id=1, role="admin", team_id=None)
 
-    monkeypatch.setattr(teams_module, "get_user_by_id", lambda db, user_id: None)
+    monkeypatch.setattr(
+        teams_module,
+        "get_user_by_id",
+        lambda db, user_id: None,
+    )
 
     client = _client(fake_db, current_user)
 
-    response = client.patch("/teams/role", json={"user_id": 99, "role": "manager"})
+    response = client.patch(
+        "/teams/role",
+        json={"user_id": 99, "role": "manager"},
+    )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
 
 
 def test_delete_user_from_team_success(monkeypatch, fake_db):
-    current_user = make_user(user_id=1, role="admin", team_id=None)
-    target_user = make_user(user_id=2, role="user", team_id=10)
+    current_user = make_user(
+        user_id=1,
+        role="admin",
+        team_id=None,
+    )
+    target_user = make_user(
+        user_id=2,
+        role="user",
+        team_id=10,
+    )
     called = {"ok": False}
 
-    monkeypatch.setattr(teams_module, "get_user_by_id", lambda db, user_id: target_user)
+    monkeypatch.setattr(
+        teams_module,
+        "get_user_by_id",
+        lambda db, user_id: target_user,
+    )
 
     def fake_remove_user_from_team(db, user):
         called["ok"] = True
 
-    monkeypatch.setattr(teams_module, "remove_user_from_team", fake_remove_user_from_team)
+    monkeypatch.setattr(
+        teams_module,
+        "remove_user_from_team",
+        fake_remove_user_from_team,
+    )
 
     client = _client(fake_db, current_user)
 

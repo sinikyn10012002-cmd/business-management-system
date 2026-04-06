@@ -24,7 +24,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(db, user_in.email)
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered",
+        )
     user = create_user(db, user_in)
     return user
 
@@ -52,11 +55,6 @@ def read_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# @router.get("/me", response_model=UserRead)
-# def read_me(current_user: User = Depends(get_current_user)):
-#    return current_user
-
-
 @router.get("/admin-only")
 def admin_only(current_user: User = Depends(role_required(["admin"]))):
     return {"message": f"Hello, admin {current_user.email}"}
@@ -71,7 +69,10 @@ def update_me(
     if user_in.email is not None:
         existing_user = get_user_by_email(db, user_in.email)
         if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(status_code=400, detail="Email already registered")
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered",
+            )
 
     user = update_user(db, current_user, user_in)
     return user

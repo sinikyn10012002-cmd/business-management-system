@@ -92,8 +92,11 @@ def test_authenticate_user_wrong_password(db_session):
 
 
 def test_authenticate_user_not_found(db_session):
-    auth_user = authenticate_user(db_session, "missing@example.com", "12345678")
-
+    auth_user = authenticate_user(
+        db_session,
+        "missing@example.com",
+        "12345678",
+    )
     assert auth_user is None
 
 
