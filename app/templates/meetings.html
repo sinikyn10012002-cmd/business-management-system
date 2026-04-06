@@ -1,23 +1,60 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Meetings</h1>
-
-<div class="card">
-    <h3>Create meeting</h3>
-    <input id="meeting_title" placeholder="Title">
-    <input id="meeting_description" placeholder="Description">
-    <label>Start time</label>
-    <input id="meeting_start" type="datetime-local">
-    <label>End time</label>
-    <input id="meeting_end" type="datetime-local">
-    <input id="participant_ids" placeholder="Participant IDs, example: 2,3,4">
-    <button onclick="createMeeting()">Create meeting</button>
-</div>
-
-<div class="card">
-    <h3>My meetings</h3>
-    <button onclick="loadMeetings()">Load meetings</button>
-    <div id="meetings-list"></div>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meetings</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="meetings">
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand">BMS</div>
+      <nav id="main-nav" class="nav"></nav>
+      <div style="margin-top:18px"><button id="logout-btn" class="secondary" style="width:100%">Выйти</button></div>
+    </aside>
+    <main class="content">
+      <section class="hero">
+        <h1 class="page-title">Встречи</h1>
+        <p class="page-subtitle">Планирование встреч, проверка пересечений и список событий пользователя.</p>
+      </section>
+      <div id="global-message" class="hidden"></div>
+      <section class="panel">
+        <h2>Новая встреча</h2>
+        <form id="meeting-form" class="stack">
+          <div class="row">
+            <div>
+              <label>Название</label>
+              <input id="meeting-title" type="text" required>
+            </div>
+            <div>
+              <label>ID участников через запятую</label>
+              <input id="meeting-participant-ids" type="text" placeholder="2, 3, 5">
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Начало</label>
+              <input id="meeting-start" type="datetime-local" required>
+            </div>
+            <div>
+              <label>Конец</label>
+              <input id="meeting-end" type="datetime-local" required>
+            </div>
+          </div>
+          <div>
+            <label>Описание</label>
+            <textarea id="meeting-description"></textarea>
+          </div>
+          <div class="row actions"><button type="submit">Создать встречу</button></div>
+        </form>
+      </section>
+      <section class="panel" style="margin-top:18px;">
+        <h2>Мои встречи</h2>
+        <div id="meetings-list" class="list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

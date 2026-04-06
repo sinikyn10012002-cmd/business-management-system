@@ -1,605 +1,776 @@
 const API = "http://127.0.0.1:8000";
+const STATUS_LABELS = {
+  open: "Открыто",
+  in_progress: "В работе",
+  done: "Выполнено",
+};
 
 function getToken() {
-    return localStorage.getItem("token");
+  return localStorage.getItem("access_token") || "";
 }
 
 function setToken(token) {
-    localStorage.setItem("token", token);
+  if (token) localStorage.setItem("access_token", token);
 }
 
-function logout() {
-    localStorage.removeItem("token");
+function clearToken() {
+  localStorage.removeItem("access_token");
+}
+
+function qs(selector, root = document) {
+  return root.querySelector(selector);
+}
+
+function qsa(selector, root = document) {
+  return [...root.querySelectorAll(selector)];
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function fmtDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("ru-RU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function dateInputValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function showMessage(text, type = "notice") {
+  const box = qs("#global-message");
+  if (!box) return;
+  box.className = type;
+  box.textContent = text;
+  box.classList.remove("hidden");
+}
+
+function clearMessage() {
+  const box = qs("#global-message");
+  if (!box) return;
+  box.classList.add("hidden");
+  box.textContent = "";
+}
+
+async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API}${path}`, { ...options, headers });
+
+  if (response.status === 204) return null;
+
+  const raw = await response.text();
+  let data;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = raw;
+  }
+
+  if (!response.ok) {
+    const message = data?.detail || data?.message || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+async function loadMe() {
+  return api("/auth/me");
+}
+
+function ensureAuthPageAccess() {
+  if (!getToken()) window.location.href = "/";
+}
+
+function renderSidebar(active) {
+  const menu = [
+    ["/dashboard", "Обзор", "dashboard"],
+    ["/teams-page", "Команды", "teams"],
+    ["/tasks-page", "Задачи", "tasks"],
+    ["/meetings-page", "Встречи", "meetings"],
+    ["/evaluations-page", "Оценки", "evaluations"],
+    ["/calendar-page", "Календарь", "calendar"],
+  ];
+  const nav = qs("#main-nav");
+  if (!nav) return;
+  nav.innerHTML = menu
+    .map(([href, label, key]) => `<a class="${active === key ? "active" : ""}" href="${href}">${label}</a>`)
+    .join("");
+}
+
+function attachLogout() {
+  const btn = qs("#logout-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    clearToken();
     window.location.href = "/";
+  });
 }
 
-function authHeaders(json = false) {
-    const headers = {};
-
-    const token = getToken();
-    if (token) {
-        headers["Authorization"] = "Bearer " + token;
+async function initAuthPage() {
+  if (getToken()) {
+    try {
+      await loadMe();
+      window.location.href = "/dashboard";
+      return;
+    } catch {
+      clearToken();
     }
+  }
 
-    if (json) {
-        headers["Content-Type"] = "application/json";
+  const loginTab = qs("#tab-login");
+  const registerTab = qs("#tab-register");
+  const loginForm = qs("#login-form");
+  const registerForm = qs("#register-form");
+
+  function switchTab(kind) {
+    const isLogin = kind === "login";
+    loginForm.classList.toggle("hidden", !isLogin);
+    registerForm.classList.toggle("hidden", isLogin);
+    loginTab.classList.toggle("inactive", !isLogin);
+    registerTab.classList.toggle("inactive", isLogin);
+    clearMessage();
+  }
+
+  loginTab.addEventListener("click", () => switchTab("login"));
+  registerTab.addEventListener("click", () => switchTab("register"));
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMessage();
+    try {
+      const payload = {
+        email: qs("#login-email").value.trim(),
+        password: qs("#login-password").value,
+      };
+      const data = await api("/auth/login", { method: "POST", body: JSON.stringify(payload) });
+      setToken(data.access_token);
+      window.location.href = "/dashboard";
+    } catch (err) {
+      showMessage(err.message, "error");
     }
+  });
 
-    return headers;
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMessage();
+    try {
+      const payload = {
+        email: qs("#register-email").value.trim(),
+        password: qs("#register-password").value,
+        full_name: qs("#register-full-name").value.trim(),
+      };
+      await api("/auth/register", { method: "POST", body: JSON.stringify(payload) });
+      showMessage("Регистрация успешна. Теперь войдите в аккаунт.");
+      switchTab("login");
+      qs("#login-email").value = payload.email;
+    } catch (err) {
+      showMessage(err.message, "error");
+    }
+  });
 }
 
-function getErrorMessage(data) {
-    if (!data) {
-        return "Request failed";
-    }
+async function initDashboardPage() {
+  ensureAuthPageAccess();
+  renderSidebar("dashboard");
+  attachLogout();
+  try {
+    const me = await loadMe();
+    qs("#profile-summary").innerHTML = `
+      <div class="kpi"><div class="muted">Имя</div><div class="value" style="font-size:22px">${escapeHtml(me.full_name || "—")}</div></div>
+      <div class="kpi"><div class="muted">Email</div><div class="value" style="font-size:22px">${escapeHtml(me.email)}</div></div>
+      <div class="kpi"><div class="muted">Роль</div><div class="value" style="font-size:22px">${escapeHtml(me.role)}</div></div>
+      <div class="kpi"><div class="muted">Команда ID</div><div class="value" style="font-size:22px">${escapeHtml(me.team_id ?? "—")}</div></div>
+    `;
+    qs("#profile-full-name").value = me.full_name || "";
+    qs("#profile-email").value = me.email || "";
 
-    if (typeof data.detail === "string") {
-        return data.detail;
-    }
+    qs("#profile-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearMessage();
+      try {
+        const payload = {
+          full_name: qs("#profile-full-name").value.trim(),
+          email: qs("#profile-email").value.trim(),
+        };
+        const updated = await api("/auth/me", { method: "PATCH", body: JSON.stringify(payload) });
+        showMessage("Профиль обновлён");
+        qs("#profile-role").textContent = updated.role;
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
 
-    if (Array.isArray(data.detail)) {
-        return data.detail
-            .map((item) => {
-                const field = Array.isArray(item.loc) ? item.loc.join(" -> ") : "field";
-                return `${field}: ${item.msg}`;
-            })
-            .join("\n");
-    }
-
-    return "Request failed";
-}
-
-async function handleResponse(response) {
-    let data = {};
-
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-        data = await response.json();
-    }
-
-    if (!response.ok) {
-        throw new Error(getErrorMessage(data));
-    }
-
-    return data;
-}
-
-function requireValue(value, message) {
-    if (!value || !String(value).trim()) {
-        throw new Error(message);
-    }
-}
-
-function requireAuthOnPrivatePages() {
-    const publicPaths = ["/"];
-    const currentPath = window.location.pathname;
-
-    if (!publicPaths.includes(currentPath) && !getToken()) {
+    qs("#delete-account-btn").addEventListener("click", async () => {
+      if (!confirm("Удалить аккаунт без восстановления?")) return;
+      try {
+        await api("/auth/me", { method: "DELETE" });
+        clearToken();
         window.location.href = "/";
-    }
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+  } catch (err) {
+    clearToken();
+    window.location.href = "/";
+  }
 }
 
-async function login() {
-    try {
-        const email = document.getElementById("email")?.value.trim();
-        const password = document.getElementById("password")?.value;
+async function initTeamsPage() {
+  ensureAuthPageAccess();
+  renderSidebar("teams");
+  attachLogout();
+  try {
+    const me = await loadMe();
+    qs("#current-role").textContent = me.role;
+    qs("#current-team").textContent = me.team_id ?? "—";
 
-        requireValue(email, "Введите email");
-        requireValue(password, "Введите пароль");
-
-        const response = await fetch(API + "/auth/login", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await handleResponse(response);
-        setToken(data.access_token);
-        window.location.href = "/dashboard";
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function register() {
-    try {
-        const email = document.getElementById("reg_email")?.value.trim();
-        const password = document.getElementById("reg_password")?.value;
-        const full_name = document.getElementById("reg_name")?.value.trim();
-
-        requireValue(email, "Введите email");
-        requireValue(password, "Введите пароль");
-        requireValue(full_name, "Введите имя");
-
-        const response = await fetch(API + "/auth/register", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({ email, password, full_name })
-        });
-
-        await handleResponse(response);
-        alert("Registered successfully");
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function loadCurrentUser() {
-    const block = document.getElementById("user-info");
-    if (!block || !getToken()) return;
-
-    try {
-        const response = await fetch(API + "/auth/me", {
-            headers: authHeaders()
-        });
-
-        const user = await handleResponse(response);
-        block.innerHTML = `
-            <div class="card">
-                <p><strong>ID:</strong> ${user.id}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>Name:</strong> ${user.full_name}</p>
-                <p><strong>Role:</strong> ${user.role}</p>
-                <p><strong>Team ID:</strong> ${user.team_id ?? "—"}</p>
+    async function refreshMembers() {
+      try {
+        const members = await api("/teams/members");
+        qs("#members-list").innerHTML = members.map((user) => `
+          <div class="card">
+            <div class="row">
+              <div>
+                <h3>${escapeHtml(user.full_name || user.email)}</h3>
+                <div class="muted">${escapeHtml(user.email)}</div>
+              </div>
+              <div><span class="badge">${escapeHtml(user.role)}</span></div>
+              <div><span class="badge">ID ${escapeHtml(user.id)}</span></div>
             </div>
-        `;
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
+            ${me.role === "admin" ? `
+            <div class="row">
+              <div>
+                <label>Новая роль</label>
+                <select data-role-user-id="${user.id}">
+                  <option value="user">user</option>
+                  <option value="manager">manager</option>
+                </select>
+              </div>
+            </div>
+            <div class="row actions">
+              <button class="small secondary" data-change-role="${user.id}">Изменить роль</button>
+              <button class="small danger" data-remove-user="${user.id}">Удалить из команды</button>
+            </div>` : ""}
+          </div>
+        `).join("");
 
-async function loadTasks() {
-    const div = document.getElementById("tasks");
-    if (!div) return;
-
-    try {
-        const response = await fetch(API + "/tasks/", {
-            headers: authHeaders()
+        qsa("[data-change-role]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const userId = Number(btn.dataset.changeRole);
+            const role = qs(`[data-role-user-id="${userId}"]`).value;
+            try {
+              await api("/teams/role", {
+                method: "PATCH",
+                body: JSON.stringify({ user_id: userId, role }),
+              });
+              showMessage("Роль обновлена");
+              refreshMembers();
+            } catch (err) {
+              showMessage(err.message, "error");
+            }
+          });
         });
 
-        const tasks = await handleResponse(response);
+        qsa("[data-remove-user]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const userId = Number(btn.dataset.removeUser);
+            if (!confirm("Убрать пользователя из команды?")) return;
+            try {
+              await api(`/teams/${userId}`, { method: "DELETE" });
+              showMessage("Пользователь удалён из команды");
+              refreshMembers();
+            } catch (err) {
+              showMessage(err.message, "error");
+            }
+          });
+        });
+      } catch (err) {
+        qs("#members-list").innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      }
+    }
 
-        div.innerHTML = "";
-        tasks.forEach(task => {
-            div.innerHTML += `
-                <div class="item">
-                    <p><strong>ID:</strong> ${task.id}</p>
-                    <p><strong>Title:</strong> ${task.title}</p>
-                    <p><strong>Status:</strong> ${task.status}</p>
-                    <p><strong>Executor ID:</strong> ${task.executor_id}</p>
-                    <p><strong>Deadline:</strong> ${task.deadline ?? "—"}</p>
+    qs("#join-team-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await api("/teams/join", {
+          method: "POST",
+          body: JSON.stringify({ code: qs("#team-code").value.trim() }),
+        });
+        showMessage("Вы присоединились к команде");
+        refreshMembers();
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    qs("#create-team-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const team = await api("/teams/", {
+          method: "POST",
+          body: JSON.stringify({ name: qs("#team-name").value.trim() }),
+        });
+        showMessage(`Команда создана. Код: ${team.code}`);
+        qs("#created-team-result").textContent = `ID: ${team.id}, код: ${team.code}`;
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    if (me.role !== "admin") {
+      qs("#create-team-panel").classList.add("hidden");
+      qs("#manage-members-note").textContent = "Назначение ролей и удаление доступны только админу команды.";
+    }
+
+    await refreshMembers();
+  } catch {
+    clearToken();
+    window.location.href = "/";
+  }
+}
+
+async function initTasksPage() {
+  ensureAuthPageAccess();
+  renderSidebar("tasks");
+  attachLogout();
+  try {
+    const me = await loadMe();
+    if (me.role !== "manager") qs("#create-task-panel").classList.add("hidden");
+
+    async function loadTasks() {
+      try {
+        const tasks = await api("/tasks/");
+        const list = qs("#tasks-list");
+        list.innerHTML = tasks.map((task) => `
+          <div class="card">
+            <div class="row">
+              <div>
+                <h3>${escapeHtml(task.title)}</h3>
+                <div class="muted">${escapeHtml(task.description || "Без описания")}</div>
+              </div>
+              <div><span class="badge ${task.status}">${STATUS_LABELS[task.status] || task.status}</span></div>
+            </div>
+            <div class="row">
+              <div class="muted">ID: ${task.id}</div>
+              <div class="muted">Дедлайн: ${fmtDate(task.deadline)}</div>
+              <div class="muted">Исполнитель ID: ${escapeHtml(task.executor_id)}</div>
+              <div class="muted">Автор ID: ${escapeHtml(task.author_id)}</div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Сменить статус</label>
+                <select data-status-select="${task.id}">
+                  <option value="open" ${task.status === "open" ? "selected" : ""}>Открыто</option>
+                  <option value="in_progress" ${task.status === "in_progress" ? "selected" : ""}>В работе</option>
+                  <option value="done" ${task.status === "done" ? "selected" : ""}>Выполнено</option>
+                </select>
+              </div>
+              <div>
+                <label>Новый исполнитель ID</label>
+                <input data-edit-executor="${task.id}" type="number" value="${task.executor_id}">
+              </div>
+              <div>
+                <label>Новый дедлайн</label>
+                <input data-edit-deadline="${task.id}" type="datetime-local" value="${dateInputValue(task.deadline)}">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Новый заголовок</label>
+                <input data-edit-title="${task.id}" value="${escapeHtml(task.title)}">
+              </div>
+              <div>
+                <label>Описание</label>
+                <input data-edit-description="${task.id}" value="${escapeHtml(task.description || "")}">
+              </div>
+            </div>
+            <div class="row actions">
+              <button class="small warning" data-update-task="${task.id}">Обновить задачу</button>
+              <button class="small success" data-change-status="${task.id}">Применить статус</button>
+              <button class="small secondary" data-load-comments="${task.id}">Комментарии</button>
+              <button class="small danger" data-delete-task="${task.id}">Удалить</button>
+            </div>
+            <div id="comments-box-${task.id}" class="stack hidden"></div>
+          </div>
+        `).join("");
+
+        qsa("[data-change-status]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const taskId = btn.dataset.changeStatus;
+            const value = qs(`[data-status-select="${taskId}"]`).value;
+            try {
+              await api(`/tasks/${taskId}/status?status_value=${encodeURIComponent(value)}`, { method: "PATCH" });
+              showMessage("Статус обновлён");
+              loadTasks();
+            } catch (err) {
+              showMessage(err.message, "error");
+            }
+          });
+        });
+
+        qsa("[data-update-task]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const taskId = btn.dataset.updateTask;
+            const payload = {
+              title: qs(`[data-edit-title="${taskId}"]`).value.trim(),
+              description: qs(`[data-edit-description="${taskId}"]`).value.trim(),
+              executor_id: Number(qs(`[data-edit-executor="${taskId}"]`).value),
+              deadline: qs(`[data-edit-deadline="${taskId}"]`).value || null,
+            };
+            try {
+              await api(`/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify(payload) });
+              showMessage("Задача обновлена");
+              loadTasks();
+            } catch (err) {
+              showMessage(err.message, "error");
+            }
+          });
+        });
+
+        qsa("[data-delete-task]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const taskId = btn.dataset.deleteTask;
+            if (!confirm("Удалить задачу?")) return;
+            try {
+              await api(`/tasks/${taskId}`, { method: "DELETE" });
+              showMessage("Задача удалена");
+              loadTasks();
+            } catch (err) {
+              showMessage(err.message, "error");
+            }
+          });
+        });
+
+        qsa("[data-load-comments]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const taskId = btn.dataset.loadComments;
+            const box = qs(`#comments-box-${taskId}`);
+            box.classList.remove("hidden");
+            try {
+              const comments = await api(`/tasks/${taskId}/comments`);
+              box.innerHTML = `
+                <div class="panel">
+                  <div class="stack">
+                    <div class="row"><strong>Комментарии к задаче #${taskId}</strong></div>
+                    <div class="list">
+                      ${comments.length ? comments.map((comment) => `
+                        <div class="comment">
+                          <div>${escapeHtml(comment.text)}</div>
+                          <div class="muted">Пользователь: ${escapeHtml(comment.user_id)} · ${fmtDate(comment.created_at)}</div>
+                        </div>
+                      `).join("") : `<div class="muted">Комментариев нет</div>`}
+                    </div>
+                    <form data-comment-form="${taskId}" class="stack">
+                      <div>
+                        <label>Новый комментарий</label>
+                        <textarea data-comment-text="${taskId}" placeholder="Введите сообщение"></textarea>
+                      </div>
+                      <div class="row actions"><button class="small">Отправить</button></div>
+                    </form>
+                  </div>
                 </div>
-            `;
+              `;
+              qs(`[data-comment-form="${taskId}"]`).addEventListener("submit", async (e) => {
+                e.preventDefault();
+                try {
+                  await api(`/tasks/${taskId}/comments`, {
+                    method: "POST",
+                    body: JSON.stringify({ text: qs(`[data-comment-text="${taskId}"]`).value.trim() }),
+                  });
+                  showMessage("Комментарий добавлен");
+                  btn.click();
+                } catch (err) {
+                  showMessage(err.message, "error");
+                }
+              });
+            } catch (err) {
+              box.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+            }
+          });
         });
-
-        if (tasks.length === 0) {
-            div.innerHTML = `<p>Нет задач</p>`;
-        }
-    } catch (error) {
-        div.innerHTML = `<p class="error">${error.message}</p>`;
+      } catch (err) {
+        qs("#tasks-list").innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      }
     }
-}
 
-async function createTask() {
-    try {
-        const title = document.getElementById("title")?.value.trim();
-        const description = document.getElementById("description")?.value.trim() || null;
-        const deadline = document.getElementById("deadline")?.value || null;
-        const executorIdValue = document.getElementById("executor_id")?.value.trim();
-
-        requireValue(title, "Введите название задачи");
-        requireValue(executorIdValue, "Введите ID исполнителя");
-
-        const executor_id = parseInt(executorIdValue, 10);
-        if (Number.isNaN(executor_id)) {
-            throw new Error("Executor ID должен быть числом");
-        }
-
-        const response = await fetch(API + "/tasks/", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({
-                title,
-                description,
-                deadline,
-                executor_id
-            })
-        });
-
-        await handleResponse(response);
-        alert("Task created");
+    qs("#create-task-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const payload = {
+          title: qs("#task-title").value.trim(),
+          description: qs("#task-description").value.trim(),
+          deadline: qs("#task-deadline").value || null,
+          executor_id: Number(qs("#task-executor-id").value),
+        };
+        await api("/tasks/", { method: "POST", body: JSON.stringify(payload) });
+        showMessage("Задача создана");
+        e.target.reset();
         loadTasks();
-    } catch (error) {
-        alert(error.message);
-    }
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    await loadTasks();
+  } catch {
+    clearToken();
+    window.location.href = "/";
+  }
 }
 
-async function createTeam() {
-    try {
-        const name = document.getElementById("team_name")?.value.trim();
-        requireValue(name, "Введите название команды");
+async function initMeetingsPage() {
+  ensureAuthPageAccess();
+  renderSidebar("meetings");
+  attachLogout();
+  try {
+    await loadMe();
 
-        const response = await fetch(API + "/teams/", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({ name })
-        });
-
-        const data = await handleResponse(response);
-        alert(`Team created. Code: ${data.code}`);
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function joinTeam() {
-    try {
-        const code = document.getElementById("team_code")?.value.trim();
-        requireValue(code, "Введите код команды");
-
-        const response = await fetch(API + "/teams/join", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({ code })
-        });
-
-        const data = await handleResponse(response);
-        alert(data.detail);
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function loadTeamMembers() {
-    const block = document.getElementById("team-members");
-    if (!block) return;
-
-    try {
-        const response = await fetch(API + "/teams/members", {
-            headers: authHeaders()
-        });
-
-        const users = await handleResponse(response);
-        block.innerHTML = "";
-
-        users.forEach(user => {
-            block.innerHTML += `
-                <div class="item">
-                    <p><strong>ID:</strong> ${user.id}</p>
-                    <p><strong>Name:</strong> ${user.full_name}</p>
-                    <p><strong>Email:</strong> ${user.email}</p>
-                    <p><strong>Role:</strong> ${user.role}</p>
-                </div>
-            `;
-        });
-
-        if (users.length === 0) {
-            block.innerHTML = `<p>Нет участников</p>`;
-        }
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
-
-async function changeUserRole() {
-    try {
-        const userIdValue = document.getElementById("role_user_id")?.value.trim();
-        const role = document.getElementById("new_role")?.value;
-
-        requireValue(userIdValue, "Введите ID пользователя");
-        requireValue(role, "Выберите роль");
-
-        const user_id = parseInt(userIdValue, 10);
-        if (Number.isNaN(user_id)) {
-            throw new Error("User ID должен быть числом");
-        }
-
-        const response = await fetch(API + "/teams/role", {
-            method: "PATCH",
-            headers: authHeaders(true),
-            body: JSON.stringify({ user_id, role })
-        });
-
-        const data = await handleResponse(response);
-        alert(data.detail);
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function removeUserFromTeam() {
-    try {
-        const userIdValue = document.getElementById("remove_user_id")?.value.trim();
-        requireValue(userIdValue, "Введите ID пользователя");
-
-        const user_id = parseInt(userIdValue, 10);
-        if (Number.isNaN(user_id)) {
-            throw new Error("User ID должен быть числом");
-        }
-
-        const response = await fetch(API + "/teams/" + user_id, {
-            method: "DELETE",
-            headers: authHeaders()
-        });
-
-        const data = await handleResponse(response);
-        alert(data.detail);
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function createMeeting() {
-    try {
-        const title = document.getElementById("meeting_title")?.value.trim();
-        const description = document.getElementById("meeting_description")?.value.trim() || null;
-        const start_time = document.getElementById("meeting_start")?.value;
-        const end_time = document.getElementById("meeting_end")?.value;
-        const rawIds = document.getElementById("participant_ids")?.value.trim() || "";
-
-        requireValue(title, "Введите название встречи");
-        requireValue(start_time, "Введите дату начала");
-        requireValue(end_time, "Введите дату окончания");
-
-        const participant_ids = rawIds
-            ? rawIds.split(",").map(x => parseInt(x.trim(), 10)).filter(x => !Number.isNaN(x))
-            : [];
-
-        const response = await fetch(API + "/meetings/", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({
-                title,
-                description,
-                start_time,
-                end_time,
-                participant_ids
-            })
-        });
-
-        await handleResponse(response);
-        alert("Meeting created");
-        loadMeetings();
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function loadMeetings() {
-    const block = document.getElementById("meetings-list");
-    if (!block) return;
-
-    try {
-        const response = await fetch(API + "/meetings/my", {
-            headers: authHeaders()
-        });
-
-        const meetings = await handleResponse(response);
-        block.innerHTML = "";
-
-        meetings.forEach(meeting => {
-            block.innerHTML += `
-                <div class="item">
-                    <p><strong>ID:</strong> ${meeting.id}</p>
-                    <p><strong>Title:</strong> ${meeting.title}</p>
-                    <p><strong>Description:</strong> ${meeting.description ?? "—"}</p>
-                    <p><strong>Start:</strong> ${meeting.start_time}</p>
-                    <p><strong>End:</strong> ${meeting.end_time}</p>
-                    <button onclick="deleteMeeting(${meeting.id})">Delete</button>
-                </div>
-            `;
-        });
-
-        if (meetings.length === 0) {
-            block.innerHTML = `<p>Нет встреч</p>`;
-        }
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
-
-async function deleteMeeting(meetingId) {
-    try {
-        const response = await fetch(API + "/meetings/" + meetingId, {
-            method: "DELETE",
-            headers: authHeaders()
-        });
-
-        if (!response.ok && response.status !== 204) {
-            await handleResponse(response);
-        }
-
-        alert("Meeting deleted");
-        loadMeetings();
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function createEvaluation() {
-    try {
-        const taskIdValue = document.getElementById("evaluation_task_id")?.value.trim();
-        const scoreValue = document.getElementById("evaluation_score")?.value.trim();
-        const comment = document.getElementById("evaluation_comment")?.value.trim() || null;
-
-        requireValue(taskIdValue, "Введите ID задачи");
-        requireValue(scoreValue, "Введите оценку");
-
-        const task_id = parseInt(taskIdValue, 10);
-        const score = parseInt(scoreValue, 10);
-
-        if (Number.isNaN(task_id)) {
-            throw new Error("Task ID должен быть числом");
-        }
-
-        if (Number.isNaN(score) || score < 1 || score > 5) {
-            throw new Error("Оценка должна быть числом от 1 до 5");
-        }
-
-        const response = await fetch(API + "/evaluations/", {
-            method: "POST",
-            headers: authHeaders(true),
-            body: JSON.stringify({ task_id, score, comment })
-        });
-
-        await handleResponse(response);
-        alert("Evaluation created");
-        loadMyEvaluations();
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-async function loadMyEvaluations() {
-    const block = document.getElementById("evaluations-list");
-    if (!block) return;
-
-    try {
-        const response = await fetch(API + "/evaluations/my", {
-            headers: authHeaders()
-        });
-
-        const evaluations = await handleResponse(response);
-        block.innerHTML = "";
-
-        evaluations.forEach(item => {
-            block.innerHTML += `
-                <div class="item">
-                    <p><strong>ID:</strong> ${item.id}</p>
-                    <p><strong>Task ID:</strong> ${item.task_id}</p>
-                    <p><strong>Score:</strong> ${item.score}</p>
-                    <p><strong>Comment:</strong> ${item.comment ?? "—"}</p>
-                    <p><strong>Created:</strong> ${item.created_at}</p>
-                </div>
-            `;
-        });
-
-        if (evaluations.length === 0) {
-            block.innerHTML = `<p>Нет оценок</p>`;
-        }
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
-
-async function loadAverageScore() {
-    const block = document.getElementById("average-score");
-    if (!block) return;
-
-    try {
-        const response = await fetch(API + "/evaluations/average", {
-            headers: authHeaders()
-        });
-
-        const data = await handleResponse(response);
-        block.innerHTML = `<p><strong>Average score:</strong> ${data.average_score ?? "No data"}</p>`;
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
-
-async function loadAverageScoreByPeriod() {
-    const block = document.getElementById("average-score-period");
-    if (!block) return;
-
-    try {
-        const date_from = document.getElementById("avg_date_from")?.value;
-        const date_to = document.getElementById("avg_date_to")?.value;
-
-        requireValue(date_from, "Введите начальную дату");
-        requireValue(date_to, "Введите конечную дату");
-
-        const url = new URL(API + "/evaluations/average-by-period");
-        url.searchParams.append("date_from", date_from);
-        url.searchParams.append("date_to", date_to);
-
-        const response = await fetch(url, {
-            headers: authHeaders()
-        });
-
-        const data = await handleResponse(response);
-        block.innerHTML = `<p><strong>Average score by period:</strong> ${data.average_score ?? "No data"}</p>`;
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
-
-async function loadCalendarDay() {
-    const block = document.getElementById("calendar-day-result");
-    if (!block) return;
-
-    try {
-        const day = document.getElementById("calendar_day")?.value;
-        requireValue(day, "Выберите дату");
-
-        const url = new URL(API + "/calendar/day");
-        url.searchParams.append("day", day);
-
-        const response = await fetch(url, {
-            headers: authHeaders()
-        });
-
-        const data = await handleResponse(response);
-        block.innerHTML = `
-            <div class="item">
-                <p><strong>Day:</strong> ${data.day}</p>
-                <pre>${JSON.stringify(data.items, null, 2)}</pre>
+    async function loadMeetings() {
+      try {
+        const meetings = await api("/meetings/my");
+        qs("#meetings-list").innerHTML = meetings.map((meeting) => `
+          <div class="card">
+            <div class="row">
+              <div>
+                <h3>${escapeHtml(meeting.title)}</h3>
+                <div class="muted">${escapeHtml(meeting.description || "Без описания")}</div>
+              </div>
+              <div><span class="badge">ID ${meeting.id}</span></div>
             </div>
-        `;
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
-    }
-}
-
-async function loadCalendarMonth() {
-    const block = document.getElementById("calendar-month-result");
-    if (!block) return;
-
-    try {
-        const year = document.getElementById("calendar_year")?.value.trim();
-        const month = document.getElementById("calendar_month")?.value.trim();
-
-        requireValue(year, "Введите год");
-        requireValue(month, "Введите месяц");
-
-        const url = new URL(API + "/calendar/month");
-        url.searchParams.append("year", year);
-        url.searchParams.append("month", month);
-
-        const response = await fetch(url, {
-            headers: authHeaders()
-        });
-
-        const data = await handleResponse(response);
-        block.innerHTML = `
-            <div class="item">
-                <p><strong>Year:</strong> ${data.year}</p>
-                <p><strong>Month:</strong> ${data.month}</p>
-                <pre>${JSON.stringify(data.days, null, 2)}</pre>
+            <div class="row">
+              <div class="muted">Начало: ${fmtDate(meeting.start_time)}</div>
+              <div class="muted">Конец: ${fmtDate(meeting.end_time)}</div>
+              <div class="muted">Организатор: ${escapeHtml(meeting.organizer_id)}</div>
             </div>
-        `;
-    } catch (error) {
-        block.innerHTML = `<p class="error">${error.message}</p>`;
+            <div class="muted">Участники: ${(meeting.participants || []).map((p) => p.id ?? p).join(", ") || "—"}</div>
+            <div class="row actions"><button class="small danger" data-cancel-meeting="${meeting.id}">Отменить</button></div>
+          </div>
+        `).join("");
+
+        qsa("[data-cancel-meeting]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (!confirm("Отменить встречу?")) return;
+            try {
+              await api(`/meetings/${btn.dataset.cancelMeeting}`, { method: "DELETE" });
+              showMessage("Встреча отменена");
+              loadMeetings();
+            } catch (err) {
+              showMessage(err.message, "error");
+            }
+          });
+        });
+      } catch (err) {
+        qs("#meetings-list").innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      }
     }
+
+    qs("#meeting-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const rawIds = qs("#meeting-participant-ids").value.trim();
+        const payload = {
+          title: qs("#meeting-title").value.trim(),
+          description: qs("#meeting-description").value.trim(),
+          start_time: qs("#meeting-start").value,
+          end_time: qs("#meeting-end").value,
+          participant_ids: rawIds ? rawIds.split(",").map((v) => Number(v.trim())).filter(Boolean) : [],
+        };
+        await api("/meetings/", { method: "POST", body: JSON.stringify(payload) });
+        showMessage("Встреча создана");
+        e.target.reset();
+        loadMeetings();
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    await loadMeetings();
+  } catch {
+    clearToken();
+    window.location.href = "/";
+  }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    requireAuthOnPrivatePages();
-    loadCurrentUser();
+async function initEvaluationsPage() {
+  ensureAuthPageAccess();
+  renderSidebar("evaluations");
+  attachLogout();
+  try {
+    const me = await loadMe();
+    if (me.role !== "manager") qs("#create-evaluation-panel").classList.add("hidden");
 
-    if (document.getElementById("tasks")) {
-        loadTasks();
+    async function loadEvaluations() {
+      try {
+        const [items, average] = await Promise.all([
+          api("/evaluations/my"),
+          api("/evaluations/average"),
+        ]);
+        qs("#average-score").textContent = average.average_score ?? "—";
+        qs("#evaluations-list").innerHTML = items.map((item) => `
+          <div class="card">
+            <div class="row">
+              <div><h3>Задача #${escapeHtml(item.task_id)}</h3></div>
+              <div><span class="badge">Оценка ${escapeHtml(item.score)}</span></div>
+            </div>
+            <div class="muted">Комментарий: ${escapeHtml(item.comment || "—")}</div>
+            <div class="muted">Менеджер: ${escapeHtml(item.manager_id)} · Сотрудник: ${escapeHtml(item.employee_id)}</div>
+            <div class="muted">Дата: ${fmtDate(item.created_at)}</div>
+          </div>
+        `).join("");
+      } catch (err) {
+        qs("#evaluations-list").innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      }
     }
 
-    if (document.getElementById("team-members")) {
-        loadTeamMembers();
-    }
+    qs("#evaluation-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const payload = {
+          task_id: Number(qs("#evaluation-task-id").value),
+          score: Number(qs("#evaluation-score").value),
+          comment: qs("#evaluation-comment").value.trim(),
+        };
+        await api("/evaluations/", { method: "POST", body: JSON.stringify(payload) });
+        showMessage("Оценка добавлена");
+        e.target.reset();
+        loadEvaluations();
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
 
-    if (document.getElementById("meetings-list")) {
-        loadMeetings();
-    }
+    qs("#period-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const from = qs("#period-from").value;
+        const to = qs("#period-to").value;
+        const data = await api(`/evaluations/average-by-period?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`);
+        qs("#period-average-result").textContent = data.average_score ?? "—";
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
 
-    if (document.getElementById("evaluations-list")) {
-        loadMyEvaluations();
+    await loadEvaluations();
+  } catch {
+    clearToken();
+    window.location.href = "/";
+  }
+}
+
+function buildMonthGrid(monthData) {
+  const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const days = monthData.days || [];
+  const map = new Map(days.map((d) => [Number(d.day), d.items || []]));
+  const firstDate = new Date(monthData.year, monthData.month - 1, 1);
+  const lastDate = new Date(monthData.year, monthData.month, 0);
+  const jsFirstWeekday = firstDate.getDay();
+  const offset = jsFirstWeekday === 0 ? 6 : jsFirstWeekday - 1;
+  const totalCells = Math.ceil((offset + lastDate.getDate()) / 7) * 7;
+
+  let html = `<table><thead><tr>${weekdays.map((d) => `<th>${d}</th>`).join("")}</tr></thead><tbody>`;
+  for (let i = 0; i < totalCells; i += 7) {
+    html += "<tr>";
+    for (let j = 0; j < 7; j++) {
+      const idx = i + j;
+      const dayNumber = idx - offset + 1;
+      if (dayNumber < 1 || dayNumber > lastDate.getDate()) {
+        html += `<td class="calendar-cell"></td>`;
+        continue;
+      }
+      const items = map.get(dayNumber) || [];
+      html += `
+        <td class="calendar-cell">
+          <strong>${dayNumber}</strong>
+          ${items.map((item) => `<div class="calendar-item">${escapeHtml(item.title || item.type || "Событие")}</div>`).join("")}
+        </td>
+      `;
     }
-});
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  return html;
+}
+
+async function initCalendarPage() {
+  ensureAuthPageAccess();
+  renderSidebar("calendar");
+  attachLogout();
+  try {
+    await loadMe();
+
+    qs("#month-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const year = qs("#calendar-year").value;
+        const month = qs("#calendar-month").value;
+        const data = await api(`/calendar/month?year=${year}&month=${month}`);
+        qs("#month-table").innerHTML = buildMonthGrid(data);
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    qs("#day-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const day = qs("#calendar-day").value;
+        const data = await api(`/calendar/day?day=${day}`);
+        qs("#day-items").innerHTML = `
+          <div class="list">
+            ${(data.items || []).length ? data.items.map((item) => `
+              <div class="card">
+                <h3>${escapeHtml(item.title || item.type || "Событие")}</h3>
+                <div class="muted">Тип: ${escapeHtml(item.type || "—")}</div>
+                <div class="muted">Время: ${escapeHtml(item.time || item.start_time || "—")}</div>
+                <div class="muted">Описание: ${escapeHtml(item.description || "—")}</div>
+              </div>
+            `).join("") : `<div class="muted">На этот день событий нет</div>`}
+          </div>
+        `;
+      } catch (err) {
+        showMessage(err.message, "error");
+      }
+    });
+
+    const now = new Date();
+    qs("#calendar-year").value = now.getFullYear();
+    qs("#calendar-month").value = now.getMonth() + 1;
+    qs("#month-form").dispatchEvent(new Event("submit"));
+  } catch {
+    clearToken();
+    window.location.href = "/";
+  }
+}
+
+const page = document.body.dataset.page;
+if (page === "auth") initAuthPage();
+if (page === "dashboard") initDashboardPage();
+if (page === "teams") initTeamsPage();
+if (page === "tasks") initTasksPage();
+if (page === "meetings") initMeetingsPage();
+if (page === "evaluations") initEvaluationsPage();
+if (page === "calendar") initCalendarPage();

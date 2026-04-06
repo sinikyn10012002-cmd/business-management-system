@@ -1,39 +1,55 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Teams</h1>
-
-<div class="card">
-    <h3>Create team (admin)</h3>
-    <input id="team_name" placeholder="Team name">
-    <button onclick="createTeam()">Create team</button>
-</div>
-
-<div class="card">
-    <h3>Join team</h3>
-    <input id="team_code" placeholder="Team code">
-    <button onclick="joinTeam()">Join</button>
-</div>
-
-<div class="card">
-    <h3>Change user role (admin)</h3>
-    <input id="role_user_id" type="number" placeholder="User ID">
-    <select id="new_role">
-        <option value="user">user</option>
-        <option value="manager">manager</option>
-    </select>
-    <button onclick="changeUserRole()">Change role</button>
-</div>
-
-<div class="card">
-    <h3>Remove user from team (admin)</h3>
-    <input id="remove_user_id" type="number" placeholder="User ID">
-    <button onclick="removeUserFromTeam()">Remove</button>
-</div>
-
-<div class="card">
-    <h3>Team members</h3>
-    <button onclick="loadTeamMembers()">Load members</button>
-    <div id="team-members"></div>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teams</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="teams">
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand">BMS</div>
+      <nav id="main-nav" class="nav"></nav>
+      <div style="margin-top:18px"><button id="logout-btn" class="secondary" style="width:100%">Выйти</button></div>
+    </aside>
+    <main class="content">
+      <section class="hero">
+        <h1 class="page-title">Команды</h1>
+        <p class="page-subtitle">Создание команды, привязка по коду, состав команды и смена ролей.</p>
+      </section>
+      <div id="global-message" class="hidden"></div>
+      <div class="grid cols-2">
+        <section class="panel" id="create-team-panel">
+          <h2>Создать команду</h2>
+          <form id="create-team-form" class="stack">
+            <div>
+              <label>Название команды</label>
+              <input id="team-name" type="text" placeholder="Team Alpha" required>
+            </div>
+            <button type="submit">Создать</button>
+          </form>
+          <div id="created-team-result" class="muted" style="margin-top:10px"></div>
+        </section>
+        <section class="panel">
+          <h2>Присоединиться по коду</h2>
+          <div class="muted">Текущая роль: <span id="current-role">—</span> · Команда: <span id="current-team">—</span></div>
+          <form id="join-team-form" class="stack" style="margin-top:14px;">
+            <div>
+              <label>Код команды</label>
+              <input id="team-code" type="text" placeholder="ABC123" required>
+            </div>
+            <button type="submit">Вступить</button>
+          </form>
+        </section>
+      </div>
+      <section class="panel" style="margin-top:18px;">
+        <h2>Состав команды</h2>
+        <p id="manage-members-note" class="muted"></p>
+        <div id="members-list" class="list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

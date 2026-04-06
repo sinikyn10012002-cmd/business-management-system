@@ -1,20 +1,57 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Tasks</h1>
-
-<div>
-    <h3>Create Task</h3>
-    <input id="title" placeholder="Title">
-    <input id="description" placeholder="Description">
-    <input id="deadline" type="datetime-local">
-    <input id="executor_id" placeholder="Executor ID">
-    <button onclick="createTask()">Create</button>
-</div>
-
-<h3>Task list</h3>
-<div id="tasks"></div>
-<script>
-loadTasks();
-</script>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="tasks">
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand">BMS</div>
+      <nav id="main-nav" class="nav"></nav>
+      <div style="margin-top:18px"><button id="logout-btn" class="secondary" style="width:100%">Выйти</button></div>
+    </aside>
+    <main class="content">
+      <section class="hero">
+        <h1 class="page-title">Задачи</h1>
+        <p class="page-subtitle">Создание, назначение исполнителя, редактирование, статусы и комментарии внутри задачи.</p>
+      </section>
+      <div id="global-message" class="hidden"></div>
+      <section class="panel" id="create-task-panel">
+        <h2>Новая задача</h2>
+        <form id="create-task-form" class="stack">
+          <div class="row">
+            <div>
+              <label>Название</label>
+              <input id="task-title" type="text" required>
+            </div>
+            <div>
+              <label>ID исполнителя</label>
+              <input id="task-executor-id" type="number" required>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Дедлайн</label>
+              <input id="task-deadline" type="datetime-local">
+            </div>
+            <div></div>
+          </div>
+          <div>
+            <label>Описание</label>
+            <textarea id="task-description"></textarea>
+          </div>
+          <div class="row actions"><button type="submit">Создать задачу</button></div>
+        </form>
+      </section>
+      <section class="panel" style="margin-top:18px;">
+        <h2>Список задач</h2>
+        <div id="tasks-list" class="list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

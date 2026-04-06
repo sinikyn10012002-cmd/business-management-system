@@ -73,8 +73,8 @@ def update_me(
         if existing_user and existing_user.id != current_user.id:
             raise HTTPException(status_code=400, detail="Email already registered")
 
-        user = update_user(db, current_user, user_in)
-        return user
+    user = update_user(db, current_user, user_in)
+    return user
 
 
 @router.delete("/me")

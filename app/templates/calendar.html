@@ -1,20 +1,54 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Calendar</h1>
-
-<div class="card">
-    <h3>Calendar by day</h3>
-    <input id="calendar_day" type="date">
-    <button onclick="loadCalendarDay()">Load day</button>
-    <div id="calendar-day-result"></div>
-</div>
-
-<div class="card">
-    <h3>Calendar by month</h3>
-    <input id="calendar_year" type="number" placeholder="Year">
-    <input id="calendar_month" type="number" min="1" max="12" placeholder="Month">
-    <button onclick="loadCalendarMonth()">Load month</button>
-    <div id="calendar-month-result"></div>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="calendar">
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand">BMS</div>
+      <nav id="main-nav" class="nav"></nav>
+      <div style="margin-top:18px"><button id="logout-btn" class="secondary" style="width:100%">Выйти</button></div>
+    </aside>
+    <main class="content">
+      <section class="hero">
+        <h1 class="page-title">Календарь</h1>
+        <p class="page-subtitle">Месячный и дневной вид задач и встреч в формате простой таблицы.</p>
+      </section>
+      <div id="global-message" class="hidden"></div>
+      <div class="grid cols-2">
+        <section class="panel">
+          <h2>Месяц</h2>
+          <form id="month-form" class="row">
+            <div>
+              <label>Год</label>
+              <input id="calendar-year" type="number" min="2024" max="2100" required>
+            </div>
+            <div>
+              <label>Месяц</label>
+              <input id="calendar-month" type="number" min="1" max="12" required>
+            </div>
+            <div style="align-self:end"><button type="submit">Показать</button></div>
+          </form>
+          <div id="month-table" class="table-wrap" style="margin-top:16px;"></div>
+        </section>
+        <section class="panel">
+          <h2>День</h2>
+          <form id="day-form" class="stack">
+            <div>
+              <label>Дата</label>
+              <input id="calendar-day" type="date" required>
+            </div>
+            <button type="submit">Показать день</button>
+          </form>
+          <div id="day-items" style="margin-top:16px"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

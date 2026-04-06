@@ -1,35 +1,70 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Evaluations</h1>
-
-<div class="card">
-    <h3>Create evaluation (manager)</h3>
-    <input id="evaluation_task_id" type="number" placeholder="Task ID">
-    <input id="evaluation_score" type="number" min="1" max="5" placeholder="Score 1-5">
-    <input id="evaluation_comment" placeholder="Comment">
-    <button onclick="createEvaluation()">Create evaluation</button>
-</div>
-
-<div class="card">
-    <h3>My evaluations</h3>
-    <button onclick="loadMyEvaluations()">Load my evaluations</button>
-    <div id="evaluations-list"></div>
-</div>
-
-<div class="card">
-    <h3>Average score</h3>
-    <button onclick="loadAverageScore()">Load average score</button>
-    <div id="average-score"></div>
-</div>
-
-<div class="card">
-    <h3>Average score by period</h3>
-    <label>Date from</label>
-    <input id="avg_date_from" type="datetime-local">
-    <label>Date to</label>
-    <input id="avg_date_to" type="datetime-local">
-    <button onclick="loadAverageScoreByPeriod()">Load</button>
-    <div id="average-score-period"></div>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluations</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="evaluations">
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand">BMS</div>
+      <nav id="main-nav" class="nav"></nav>
+      <div style="margin-top:18px"><button id="logout-btn" class="secondary" style="width:100%">Выйти</button></div>
+    </aside>
+    <main class="content">
+      <section class="hero">
+        <h1 class="page-title">Оценка работы</h1>
+        <p class="page-subtitle">Оценки по задачам, средний балл и фильтр по периоду.</p>
+      </section>
+      <div id="global-message" class="hidden"></div>
+      <div class="grid cols-2">
+        <section class="panel" id="create-evaluation-panel">
+          <h2>Оценить выполненную задачу</h2>
+          <form id="evaluation-form" class="stack">
+            <div class="row">
+              <div>
+                <label>ID задачи</label>
+                <input id="evaluation-task-id" type="number" required>
+              </div>
+              <div>
+                <label>Балл (1–5)</label>
+                <input id="evaluation-score" type="number" min="1" max="5" required>
+              </div>
+            </div>
+            <div>
+              <label>Комментарий</label>
+              <textarea id="evaluation-comment"></textarea>
+            </div>
+            <div class="row actions"><button type="submit">Сохранить оценку</button></div>
+          </form>
+        </section>
+        <section class="panel">
+          <h2>Средний балл</h2>
+          <div class="kpi"><div class="muted">Общий средний</div><div id="average-score" class="value">—</div></div>
+          <form id="period-form" class="stack" style="margin-top:14px;">
+            <div class="row">
+              <div>
+                <label>Дата с</label>
+                <input id="period-from" type="datetime-local" required>
+              </div>
+              <div>
+                <label>Дата по</label>
+                <input id="period-to" type="datetime-local" required>
+              </div>
+            </div>
+            <button type="submit">Посчитать за период</button>
+          </form>
+          <div class="muted" style="margin-top:10px">Средний за период: <strong id="period-average-result">—</strong></div>
+        </section>
+      </div>
+      <section class="panel" style="margin-top:18px;">
+        <h2>Мои оценки</h2>
+        <div id="evaluations-list" class="list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

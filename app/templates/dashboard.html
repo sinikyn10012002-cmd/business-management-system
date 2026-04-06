@@ -1,9 +1,50 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h1>Dashboard</h1>
-<p>Welcome to Business Management System</p>
-
-<div id="user-info"></div>
-
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="dashboard">
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand">BMS</div>
+      <nav id="main-nav" class="nav"></nav>
+      <div style="margin-top:18px"><button id="logout-btn" class="secondary" style="width:100%">Выйти</button></div>
+    </aside>
+    <main class="content">
+      <section class="hero">
+        <h1 class="page-title">Личный кабинет</h1>
+        <p class="page-subtitle">Профиль пользователя, обновление данных и удаление аккаунта.</p>
+      </section>
+      <div id="global-message" class="hidden"></div>
+      <section class="grid cols-2">
+        <div class="panel">
+          <h2>Профиль</h2>
+          <div id="profile-summary" class="grid cols-2"></div>
+          <div class="muted" style="margin-top:10px">Роль: <span id="profile-role">—</span></div>
+        </div>
+        <div class="panel">
+          <h2>Редактирование</h2>
+          <form id="profile-form" class="stack">
+            <div>
+              <label>Имя</label>
+              <input id="profile-full-name" type="text" required>
+            </div>
+            <div>
+              <label>Email</label>
+              <input id="profile-email" type="email" required>
+            </div>
+            <div class="row actions">
+              <button type="submit">Сохранить</button>
+              <button id="delete-account-btn" type="button" class="danger">Удалить аккаунт</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

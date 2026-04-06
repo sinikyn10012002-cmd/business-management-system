@@ -1,17 +1,60 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Management System</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="auth">
+  <main class="auth-shell">
+    <div class="auth-wrap">
+      <section class="hero auth-side">
+        <div class="badge">MVP</div>
+        <h1 class="page-title">Business Management System</h1>
+        <p class="page-subtitle">Фронтенд с нуля под твой FastAPI-бэкенд: авторизация, команды, задачи, встречи, оценки и календарь.</p>
+        <div class="grid cols-2" style="margin-top:20px;">
+          <div class="kpi"><div class="muted">Роли</div><div class="value" style="font-size:22px">user / manager / admin</div></div>
+          <div class="kpi"><div class="muted">Модули</div><div class="value" style="font-size:22px">6 разделов</div></div>
+        </div>
+      </section>
+      <section class="panel auth-forms">
+        <div id="global-message" class="hidden"></div>
+        <div class="tabs">
+          <button id="tab-login">Вход</button>
+          <button id="tab-register" class="inactive">Регистрация</button>
+        </div>
 
-{% block content %}
-<h2>Login</h2>
+        <form id="login-form" class="stack">
+          <div>
+            <label>Email</label>
+            <input id="login-email" type="email" placeholder="name@example.com" required>
+          </div>
+          <div>
+            <label>Пароль</label>
+            <input id="login-password" type="password" placeholder="••••••••" required>
+          </div>
+          <button type="submit">Войти</button>
+        </form>
 
-<input type="email" id="email" placeholder="Email" required>
-<input type="password" id="password" placeholder="Password" required>
-<button onclick="login()">Login</button>
-
-<h2>Register</h2>
-
-<input type="email" id="reg_email" placeholder="Email" required>
-<input type="password" id="reg_password" placeholder="Password" required>
-<input type="text" id="reg_name" placeholder="Full name" required>
-<button onclick="register()">Register</button>
-
-{% endblock %}
+        <form id="register-form" class="stack hidden">
+          <div>
+            <label>ФИО / имя</label>
+            <input id="register-full-name" type="text" placeholder="Иван Синицын" required>
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="register-email" type="email" placeholder="name@example.com" required>
+          </div>
+          <div>
+            <label>Пароль</label>
+            <input id="register-password" type="password" placeholder="Не короче 6 символов" required>
+          </div>
+          <button type="submit">Создать аккаунт</button>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
