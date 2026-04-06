@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Evaluations</h1>
+
+<div class="card">
+    <h3>Create evaluation (manager)</h3>
+    <input id="evaluation_task_id" type="number" placeholder="Task ID">
+    <input id="evaluation_score" type="number" min="1" max="5" placeholder="Score 1-5">
+    <input id="evaluation_comment" placeholder="Comment">
+    <button onclick="createEvaluation()">Create evaluation</button>
+</div>
+
+<div class="card">
+    <h3>My evaluations</h3>
+    <button onclick="loadMyEvaluations()">Load my evaluations</button>
+    <div id="evaluations-list"></div>
+</div>
+
+<div class="card">
+    <h3>Average score</h3>
+    <button onclick="loadAverageScore()">Load average score</button>
+    <div id="average-score"></div>
+</div>
+
+<div class="card">
+    <h3>Average score by period</h3>
+    <label>Date from</label>
+    <input id="avg_date_from" type="datetime-local">
+    <label>Date to</label>
+    <input id="avg_date_to" type="datetime-local">
+    <button onclick="loadAverageScoreByPeriod()">Load</button>
+    <div id="average-score-period"></div>
+</div>
+{% endblock %}

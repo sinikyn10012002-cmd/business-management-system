@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Teams</h1>
+
+<div class="card">
+    <h3>Create team (admin)</h3>
+    <input id="team_name" placeholder="Team name">
+    <button onclick="createTeam()">Create team</button>
+</div>
+
+<div class="card">
+    <h3>Join team</h3>
+    <input id="team_code" placeholder="Team code">
+    <button onclick="joinTeam()">Join</button>
+</div>
+
+<div class="card">
+    <h3>Change user role (admin)</h3>
+    <input id="role_user_id" type="number" placeholder="User ID">
+    <select id="new_role">
+        <option value="user">user</option>
+        <option value="manager">manager</option>
+    </select>
+    <button onclick="changeUserRole()">Change role</button>
+</div>
+
+<div class="card">
+    <h3>Remove user from team (admin)</h3>
+    <input id="remove_user_id" type="number" placeholder="User ID">
+    <button onclick="removeUserFromTeam()">Remove</button>
+</div>
+
+<div class="card">
+    <h3>Team members</h3>
+    <button onclick="loadTeamMembers()">Load members</button>
+    <div id="team-members"></div>
+</div>
+{% endblock %}

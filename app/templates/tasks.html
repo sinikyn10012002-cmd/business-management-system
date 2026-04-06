@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Tasks</h1>
+
+<div>
+    <h3>Create Task</h3>
+    <input id="title" placeholder="Title">
+    <input id="description" placeholder="Description">
+    <input id="deadline" type="datetime-local">
+    <input id="executor_id" placeholder="Executor ID">
+    <button onclick="createTask()">Create</button>
+</div>
+
+<h3>Task list</h3>
+<div id="tasks"></div>
+<script>
+loadTasks();
+</script>
+{% endblock %}

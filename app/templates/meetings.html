@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Meetings</h1>
+
+<div class="card">
+    <h3>Create meeting</h3>
+    <input id="meeting_title" placeholder="Title">
+    <input id="meeting_description" placeholder="Description">
+    <label>Start time</label>
+    <input id="meeting_start" type="datetime-local">
+    <label>End time</label>
+    <input id="meeting_end" type="datetime-local">
+    <input id="participant_ids" placeholder="Participant IDs, example: 2,3,4">
+    <button onclick="createMeeting()">Create meeting</button>
+</div>
+
+<div class="card">
+    <h3>My meetings</h3>
+    <button onclick="loadMeetings()">Load meetings</button>
+    <div id="meetings-list"></div>
+</div>
+{% endblock %}

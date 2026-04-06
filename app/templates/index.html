@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Login</h2>
+
+<input type="email" id="email" placeholder="Email" required>
+<input type="password" id="password" placeholder="Password" required>
+<button onclick="login()">Login</button>
+
+<h2>Register</h2>
+
+<input type="email" id="reg_email" placeholder="Email" required>
+<input type="password" id="reg_password" placeholder="Password" required>
+<input type="text" id="reg_name" placeholder="Full name" required>
+<button onclick="register()">Register</button>
+
+{% endblock %}

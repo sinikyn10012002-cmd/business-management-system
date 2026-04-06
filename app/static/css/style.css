@@ -1,0 +1,61 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+}
+
+.navbar {
+    background: #1f2937;
+    padding: 15px;
+    display: flex;
+    gap: 16px;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.content {
+    padding: 24px;
+}
+
+.card {
+    background: white;
+    padding: 16px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+input, select, button {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    padding: 10px;
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+}
+
+button {
+    cursor: pointer;
+}
+
+.item {
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #eef2f7;
+    border-radius: 8px;
+}
+
+.error {
+    color: #b91c1c;
+    font-weight: bold;
+}
+
+.success {
+    color: #15803d;
+    font-weight: bold;
+}
