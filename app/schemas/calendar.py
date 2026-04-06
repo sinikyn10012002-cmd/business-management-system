@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 class CalendarItem(BaseModel):
-    item_type: str  # task / meeting
+    item_type: str
     id: int
     title: str
     date: date
