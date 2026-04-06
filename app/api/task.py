@@ -132,7 +132,10 @@ def delete_task_by_author(
         raise HTTPException(status_code=404, detail="Task not found")
 
     if task.author_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only author can delete this task")
+        raise HTTPException(
+            status_code=403,
+            detail="Only author can delete this task",
+        )
 
     delete_task(db, task)
     return {"detail": "Task deleted"}

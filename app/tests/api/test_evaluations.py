@@ -72,9 +72,15 @@ def test_evaluate_task_already_evaluated(monkeypatch, fake_db):
     task = SimpleNamespace(id=1, status="done", team_id=10, executor_id=5)
     existing = SimpleNamespace(id=100)
 
-    monkeypatch.setattr(evaluations_module, "get_task_by_id", lambda db, task_id: task)
     monkeypatch.setattr(
-        evaluations_module, "get_evaluation_by_task_id", lambda db, task_id: existing
+        evaluations_module,
+        "get_task_by_id",
+        lambda db, task_id: task,
+    )
+    monkeypatch.setattr(
+        evaluations_module,
+        "get_evaluation_by_task_id",
+        lambda db, task_id: existing,
     )
 
     client = _client(fake_db, current_user)

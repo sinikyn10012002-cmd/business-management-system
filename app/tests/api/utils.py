@@ -21,7 +21,11 @@ def make_user(
 
 
 def build_client(
-    router, get_db_dep=None, get_current_user_dep=None, current_user=None, fake_db=None
+    router,
+    get_db_dep=None,
+    get_current_user_dep=None,
+    current_user=None,
+    fake_db=None,
 ):
     app = FastAPI()
     app.include_router(router)

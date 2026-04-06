@@ -16,7 +16,11 @@ from app.crud.meeting import (
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
 
-@router.post("/", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=MeetingResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_new_meeting(
     meeting_in: MeetingCreate,
     db: Session = Depends(get_db),
@@ -25,7 +29,12 @@ def create_new_meeting(
     participant_ids = list(set(meeting_in.participant_ids + [current_user.id]))
 
     for user_id in participant_ids:
-        if has_meeting_overlap(db, user_id, meeting_in.start_time, meeting_in.end_time):
+        if has_meeting_overlap(
+            db,
+            user_id,
+            meeting_in.start_time,
+            meeting_in.end_time,
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"У пользователя {user_id} уже есть встреча в это время",
