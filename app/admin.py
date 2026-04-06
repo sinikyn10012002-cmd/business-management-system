@@ -5,6 +5,7 @@ from app.models.team import Team
 from app.models.task import Task
 from app.models.evaluation import Evaluation
 from app.models.meeting import Meeting
+from app.models.task_comment import TaskComment
 
 
 class UserAdmin(ModelView, model=User):
@@ -150,6 +151,32 @@ class MeetingAdmin(ModelView, model=Meeting):
     ]
 
 
+class TaskCommentAdmin(ModelView, model=TaskComment):
+    name = "Task Comment"
+    name_plural = "Task Comments"
+    icon = "fa-solid fa-comments"
+
+    column_list = [
+        TaskComment.id,
+        TaskComment.text,
+        TaskComment.task,
+        TaskComment.user,
+        TaskComment.created_at,
+    ]
+
+    column_searchable_list = [TaskComment.text]
+    column_sortable_list = [
+        TaskComment.id,
+        TaskComment.created_at,
+    ]
+
+    form_columns = [
+        TaskComment.text,
+        TaskComment.task,
+        TaskComment.user,
+    ]
+
+
 def setup_admin(app, engine):
     admin = Admin(app, engine)
 
@@ -158,3 +185,4 @@ def setup_admin(app, engine):
     admin.add_view(TaskAdmin)
     admin.add_view(EvaluationAdmin)
     admin.add_view(MeetingAdmin)
+    admin.add_view(TaskCommentAdmin)
