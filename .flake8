@@ -4,3 +4,4 @@ exclude = .venv, migrations, alembic
 
 per-file-ignores = 
     app/tests/crud/conftest.py: F401
+    app/db/base.py: F401
