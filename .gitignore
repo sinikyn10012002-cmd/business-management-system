@@ -31,3 +31,6 @@ Thumbs.db
 
 # Pytest
 pytest.ini
+
+#Docker
+.env.docker
