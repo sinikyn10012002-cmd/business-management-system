@@ -10,6 +10,10 @@ from alembic import context
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.db.base import Base
+from app.core.config import settings
+
+config = context.config
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
