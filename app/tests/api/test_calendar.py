@@ -5,7 +5,7 @@ from app.api.calendar import router
 from app.api import calendar as calendar_module
 from app.db.session import get_db
 from app.dependencies.auth import get_current_user
-from app.tests.api.utils import make_user, build_client
+from app.tests.api.utils import make_user
 
 
 def _client(fake_db, current_user):
