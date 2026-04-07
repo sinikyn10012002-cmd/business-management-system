@@ -59,6 +59,7 @@
 - Passlib (pbkdf2_sha256)
 - Jinja2
 - Docker
+- Pytest
 
 ---
 
