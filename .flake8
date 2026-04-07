@@ -1,3 +1,6 @@
 [flake8]
 max-line-length = 120
 exclude = .venv, migrations, alembic
+
+per-file-ignores = 
+    app/tests/crud/conftest.py: F401
