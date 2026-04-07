@@ -18,17 +18,6 @@ class MeetingCreate(BaseModel):
         return v
 
 
-class MeetingResponse(BaseModel):
-    id: int
-    title: str
-    description: str | None
-    start_time: datetime
-    end_time: datetime
-    organizer_id: int
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class MeetingParticipant(BaseModel):
     id: int
     email: str
