@@ -13,8 +13,17 @@ from app.api import meetings
 from app.api import calendar
 from app.api import evaluations
 from app.admin import setup_admin
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Business Management System")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(teams.router)
