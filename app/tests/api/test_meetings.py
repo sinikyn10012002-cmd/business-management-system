@@ -107,6 +107,4 @@ def test_cancel_meeting_only_organizer(monkeypatch, fake_db):
     response = client.delete("/meetings/5")
 
     assert response.status_code == 403
-    assert response.json()["detail"] == (
-        "Только организатор может отменить встречу"
-    )
+    assert response.json()["detail"] == ("Только организатор может отменить встречу")
