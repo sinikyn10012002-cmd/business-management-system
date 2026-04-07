@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -8,13 +9,32 @@ from app.models.meeting import Meeting
 from app.models.user import User
 
 
-def get_day_bounds(target_date: date):
+def get_day_bounds(target_date: date) -> tuple[datetime, datetime]:
+    """
+    Возвращает начало и конец указанного дня.
+
+    :target_date: Дата, для которой нужно определить временные границы.
+    :returns:Кортеж из двух объектов datetime:
+        - начало дня (00:00:00),
+        - конец дня (23:59:59.999999).
+    """
     start_dt = datetime.combine(target_date, time.min)
     end_dt = datetime.combine(target_date, time.max)
     return start_dt, end_dt
 
 
-def get_tasks_for_day(db: Session, user_id: int, target_date: date):
+def get_tasks_for_day(db: Session, user_id: int, target_date: date) -> list[Task]:
+    """Получает список задач пользователя на указанную дату.
+
+    Выбираются задачи, у которых исполнитель совпадает с user_id,
+    а дедлайн попадает в границы target_date.
+
+    :db: Сессия базы данных.
+    :user_id: Идентификатор пользователя.
+    :target_date: Дата, за которую нужно получить задачи.
+
+    :returns: Список задач пользователя, отсортированный по дедлайну.
+    """
     start_dt, end_dt = get_day_bounds(target_date)
 
     stmt = (
@@ -30,7 +50,18 @@ def get_tasks_for_day(db: Session, user_id: int, target_date: date):
     return result.scalars().all()
 
 
-def get_meetings_for_day(db: Session, user_id: int, target_date: date):
+def get_meetings_for_day(db: Session, user_id: int, target_date: date) -> list[Meeting]:
+    """Получает список встреч пользователя на указанную дату.
+
+    Выбираются встречи, в которых пользователь является участником,
+    а время начала встречи попадает в границы target_date.
+
+    :db: Сессия базы данных.
+    :user_id: Идентификатор пользователя.
+    :target_date: Дата, за которую нужно получить встречи.
+
+    :returns: Список уникальных встреч, отсортированный по времени начала.
+    """
     start_dt, end_dt = get_day_bounds(target_date)
 
     stmt = (
@@ -47,11 +78,26 @@ def get_meetings_for_day(db: Session, user_id: int, target_date: date):
     return result.scalars().unique().all()
 
 
-def build_day_calendar(db: Session, user_id: int, target_date: date):
+def build_day_calendar(
+    db: Session,
+    user_id: int,
+    target_date: date,
+) -> list[dict[str, Any]]:
+    """Формирует календарь пользователя за один день.
+
+    В итоговый список включаются задачи и встречи в едином формате.
+    Элементы сортируются по дате и времени.
+
+    :db: Сессия базы данных.
+    :user_id: Идентификатор пользователя.
+    :target_date: Дата, за которую формируется календарь.
+
+    :returns: Список словарей с данными о задачах и встречах за день.
+    """
     tasks = get_tasks_for_day(db, user_id, target_date)
     meetings = get_meetings_for_day(db, user_id, target_date)
 
-    items = []
+    items: list[dict[str, Any]] = []
 
     for task in tasks:
         items.append(
@@ -81,7 +127,25 @@ def build_day_calendar(db: Session, user_id: int, target_date: date):
     return items
 
 
-def build_month_calendar(db: Session, user_id: int, year: int, month: int):
+def build_month_calendar(
+    db: Session,
+    user_id: int,
+    year: int,
+    month: int,
+) -> list[dict[str, Any]]:
+    """Формирует календарь пользователя за месяц.
+
+    Для каждого дня месяца собирается список задач и встреч.
+
+    db: Сессия базы данных.
+    user_id: Идентификатор пользователя.
+    year: Год календаря.
+    month: Месяц календаря.
+
+    :returns: Список словарей, где каждый словарь содержит:
+        - day: дата,
+        - items: список событий за эту дату.
+    """
     first_day = date(year, month, 1)
 
     if month == 12:
@@ -90,7 +154,7 @@ def build_month_calendar(db: Session, user_id: int, year: int, month: int):
         next_month = date(year, month + 1, 1)
 
     current_day = first_day
-    days = []
+    days: list[dict[str, Any]] = []
 
     while current_day < next_month:
         items = build_day_calendar(db, user_id, current_day)
