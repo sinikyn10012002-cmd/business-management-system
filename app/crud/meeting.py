@@ -1,4 +1,4 @@
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.meeting import Meeting
