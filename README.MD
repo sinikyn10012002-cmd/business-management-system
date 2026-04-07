@@ -95,6 +95,9 @@ source .venv/bin/activate  # или .venv\Scripts\activate
 
 pip install -r requirements.txt
 
+alembic revision --autogenerate -m "init"
+alembic upgrade head
+
 uvicorn app.main:app --reload
 ```
 
