@@ -54,7 +54,7 @@
 - FastAPI
 - SQLAlchemy 2.0
 - Alembic
-- SQLite / PostgreSQL
+- SQLite
 - JWT (python-jose)
 - Passlib (pbkdf2_sha256)
 - Jinja2
